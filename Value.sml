@@ -5,14 +5,15 @@ structure Value : VALUE = struct
     | NIL
     | CONS of thunk * thunk
     (* closure *)
-    | FUN of thunk StringMap.map * string * Syntax.exp
+    | FUN of env * string * Syntax.exp
     (* closure of recursive function *)
-    | RECFUN of thunk StringMap.map * string * string * Syntax.exp
+    | RECFUN of env * string * string * Syntax.exp
     | TUPLE of thunk list
   and thunk_body =
       VALUE of value
-    | SUSPEND of thunk StringMap.map * Syntax.exp
+    | SUSPEND of env * Syntax.exp
   withtype thunk = thunk_body ref
+  and env = thunk StringMap.map
 
   fun thunkFromSyntaxExp env m = ref (SUSPEND (env, m))
   fun thunkFromValue v = ref (VALUE v)
