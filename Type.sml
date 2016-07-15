@@ -8,6 +8,7 @@ structure Type : TYPE = struct
     | BOOL
     | ARROW of typ * typ
     | TUPLE of typ list
+    | LIST of typ
   and tvar = UNBOUND of Id.id * int | LINK of typ
 
   (* type scheme *)
@@ -28,6 +29,7 @@ structure Type : TYPE = struct
     | toString (TUPLE []) = "unit"
     | toString (TUPLE (t :: ts)) =
         "(" ^ foldr (fn (t, s) => s ^ " * " ^ toString t) (toString t) ts ^ ")"
+    | toString (LIST t) = toString t ^ " list"
 
   (* generate type variable in current level *)
   fun genvar l = VAR (ref (UNBOUND (Id.gensym (), l)))
@@ -43,6 +45,7 @@ structure Type : TYPE = struct
       | subst env BOOL = BOOL
       | subst env (ARROW (t1, t2)) = ARROW (subst env t1, subst env t2)
       | subst env (TUPLE ts) = TUPLE (map (subst env) ts)
+      | subst env (LIST t) = LIST (subst env t)
   in
     (* instantiate type scheme in current level *)
     fun inst l (xs, t) =
@@ -68,6 +71,7 @@ structure Type : TYPE = struct
             (generalizeBody t1s; generalizeBody t2)
         | generalizeBody (TUPLE ts) =
             app generalizeBody ts
+        | generalizeBody (LIST t) = generalizeBody t
       val () = generalizeBody t
     in
       (!bounds, t)
@@ -80,6 +84,7 @@ structure Type : TYPE = struct
     (* occur check *)
     fun occur r1 (ARROW (t1, t2)) =
           occur r1 t1 orelse occur r1 t2
+      | occur r1 (LIST t) = occur r1 t
       | occur r1 (VAR (r2 as (ref (UNBOUND _)))) = r1 = r2
       | occur r1 (VAR (r2 as (ref (LINK t2)))) =
           r1 = r2 orelse occur r1 t2
@@ -95,6 +100,7 @@ structure Type : TYPE = struct
           (unify (t11, t21); unify (t12, t22))
       | unify (TUPLE t1s, TUPLE t2s) =
            ListPair.appEq unify (t1s, t2s)
+      | unify (LIST t1, LIST t2) = unify (t1, t2)
       | unify (VAR (ref (LINK t1)), t2) = unify (t1, t2)
       | unify (t1, VAR (ref (LINK t2))) = unify (t1, t2)
       | unify (t1 as (VAR (r1 as (ref (UNBOUND (_, l1))))),

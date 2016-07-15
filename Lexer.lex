@@ -47,8 +47,11 @@ alpha=[A-Za-z];
 "-" => (MINUS((),()));
 "*" => (TIMES((),()));
 "<=" => (LE((),()));
+"[" => (LBRACKET((),()));
+"]" => (RBRACKET((),()));
+"::" => (CONS((),()));
+"|" => (BAR((),()));
 "~"? {digit}+ => (DIGIT(valOf(Int.fromString yytext),(),()));
 {letter} ({alpha} | {digit} | "'" |  "_")* => (IDENT(yytext,(),()));
-("!" | "%" | "&" | "$" | "#" | "+" | "-" | "/" | ":" | "<" | "=" | ">" | "?" | "@" | "\\" | "~" | "`" | "^" | "|" | "*")+ => (IDENT(yytext,(),()));
 {space}+ => (lex()(* skip spaces and continue lexing *));
 

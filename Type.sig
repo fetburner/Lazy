@@ -9,6 +9,7 @@ sig
     | BOOL
     | ARROW of typ * typ
     | TUPLE of typ list
+    | LIST of typ
   and tvar = UNBOUND of Id.id * int | LINK of typ
 
   type scheme

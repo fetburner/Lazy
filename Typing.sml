@@ -5,6 +5,7 @@ structure Typing : TYPING = struct
   (* perform type inference *)
   fun typingExp l env (Syntax.INT _) = Type.INT
     | typingExp l env (Syntax.BOOL _) = Type.BOOL
+    | typingExp l env Syntax.NIL = Type.LIST (Type.genvar l)
     | typingExp l env (Syntax.VAR x) =
         (case StringMap.find (env, x) of
               NONE => raise (UnboundVar x)
@@ -49,6 +50,21 @@ structure Typing : TYPING = struct
           Type.unify (t1, Type.TUPLE (map #2 xs'));
           t2
         end
+    | typingExp l env (Syntax.CASE (m, n1, x, y, n2)) =
+        let
+          val t1 = typingExp l env m
+          val t2 = typingExp l env n1
+          val t12 = Type.genvar l
+          val t3 = typingExp l
+            (StringMap.insert
+              (StringMap.insert (env, x, Type.toTypeScheme t12),
+               y,
+               Type.toTypeScheme t1)) n2
+        in
+          Type.unify (t1, Type.LIST t12);
+          Type.unify (t2, t3);
+          t2
+        end
     | typingExp l env (Syntax.PLUS (m, n)) =
         let
           val t1 = typingExp l env m
@@ -84,6 +100,14 @@ structure Typing : TYPING = struct
           Type.unify (t1, Type.INT);
           Type.unify (t2, Type.INT);
           Type.BOOL
+        end
+    | typingExp l env (Syntax.CONS (m, n)) =
+        let
+          val t1 = typingExp l env m
+          val t2 = typingExp l env n
+        in
+          Type.unify (Type.LIST t1, t2);
+          t2
         end
   and typingDec l env (Syntax.VAL (x, m)) =
         StringMap.insert (env, x, Type.generalize l (typingExp (l + 1) env m))

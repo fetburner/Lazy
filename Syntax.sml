@@ -4,6 +4,7 @@ structure Syntax = struct
     (* constant *)
       INT of int
     | BOOL of bool
+    | NIL
     (* variable *)
     | VAR of string
     (* if M then N_1 else N_2 *)
@@ -18,11 +19,14 @@ structure Syntax = struct
     | TUPLE of exp list
     (* case M of (x_1, ..., x_n) N *)
     | LET_TUPLE of exp * string list * exp
+    (* case M of [] => N1 | x :: y => N2 *)
+    | CASE of exp * exp * string * string * exp
     (* primitives *)
     | PLUS of exp * exp
     | MINUS of exp * exp
     | TIMES of exp * exp
     | LE of exp * exp
+    | CONS of exp * exp
   (* abstract syntax tree of declaration *)
   and dec =
     (* val x = M *)
@@ -32,6 +36,7 @@ structure Syntax = struct
 
   fun expToString (INT n) = Int.toString n
     | expToString (BOOL b) = Bool.toString b
+    | expToString NIL = "[]"
     | expToString (VAR x) = x
     | expToString (IF (m, n1, n2)) =
         "(if "
@@ -77,6 +82,18 @@ structure Syntax = struct
         ^ " => "
         ^ expToString n
         ^ ")"
+    | expToString (CASE (m, n1, x, y, n2)) =
+        "(case "
+        ^ expToString m
+        ^ " of [] => "
+        ^ expToString n1
+        ^ " | "
+        ^ x
+        ^ " :: "
+        ^ y
+        ^ " => "
+        ^ expToString n2
+        ^ ")"
     | expToString (PLUS (m, n)) =
         "("
         ^ expToString m
@@ -95,10 +112,16 @@ structure Syntax = struct
         ^ " - "
         ^ expToString n
         ^ ")"
-    | expToString (LE(m, n)) =
+    | expToString (LE (m, n)) =
         "("
         ^ expToString m
         ^ " <= "
+        ^ expToString n
+        ^ ")"
+    | expToString (CONS (m, n)) =
+        "("
+        ^ expToString m
+        ^ " :: "
         ^ expToString n
         ^ ")"
   and decToString (VAL (x, m)) =

@@ -34,6 +34,10 @@
     | MINUS (* - *)
     | TIMES (* * *)
     | LE (* <= *)
+    | LBRACKET (* [ *)
+    | RBRACKET (* * *)
+    | CONS (* :: *)
+    | BAR (* | *)
 
 (* Nonterminal symbols *)
 %nonterm ATEXP of Syntax.exp
@@ -43,6 +47,7 @@
        | APPEXP of Syntax.exp
        | PRODEXP of Syntax.exp
        | SUMEXP of Syntax.exp
+       | CONSEXP of Syntax.exp
        | CMPEXP of Syntax.exp
        | ATDEC of Syntax.dec
        | DEC of Syntax.dec list
@@ -57,6 +62,8 @@ ATEXP : BOOL
           (Syntax.INT DIGIT)
       | LPAREN RPAREN
           (Syntax.TUPLE [])
+      | LBRACKET RBRACKET
+          (Syntax.NIL)
       | LPAREN TUPLE_BODY RPAREN
           (Syntax.TUPLE TUPLE_BODY)
       | IDENT
@@ -95,10 +102,15 @@ SUMEXP : PRODEXP
        | SUMEXP MINUS PRODEXP
            (Syntax.MINUS (SUMEXP, PRODEXP))
 
-CMPEXP : SUMEXP
-           (SUMEXP)
-       | SUMEXP LE SUMEXP
-           (Syntax.LE (SUMEXP1, SUMEXP2))
+CONSEXP : SUMEXP
+            (SUMEXP)
+        | SUMEXP CONS CONSEXP
+            (Syntax.CONS (SUMEXP, CONSEXP))
+
+CMPEXP : CONSEXP
+           (CONSEXP)
+       | CONSEXP LE CONSEXP
+           (Syntax.LE (CONSEXP1, CONSEXP2))
 
 EXP : CMPEXP
         (CMPEXP)
@@ -108,6 +120,8 @@ EXP : CMPEXP
         (Syntax.IF (EXP1, EXP2, EXP3))
     | CASE EXP OF IDENTSEQ FATARROW EXP
         (Syntax.LET_TUPLE (EXP1, IDENTSEQ, EXP2))
+    | CASE EXP OF LBRACKET RBRACKET FATARROW EXP BAR IDENT CONS IDENT FATARROW EXP
+        (Syntax.CASE (EXP1, EXP2, IDENT1, IDENT2, EXP3))
 
 ATDEC : VAL IDENT EQUAL EXP
           (Syntax.VAL (IDENT, EXP))
