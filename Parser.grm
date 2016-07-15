@@ -1,0 +1,127 @@
+
+
+
+%%
+(* Declarations for ML-Yacc *)
+
+%name Lazy
+%pos unit
+%eop SEMICOLON
+%start EXP
+
+(* Terminal symbols *)
+%term IDENT of string (* value identifier *)
+    | BOOL of bool
+    | DIGIT of int
+    | CASE (* case *)
+    | ELSE (* else *)
+    | END (* end *)
+    | FN (* fn *)
+    | IF (* if *)
+    | IN (* in *)
+    | LET (* let *)
+    | OF (* of *)
+    | REC (* rec *)
+    | THEN (* then *)
+    | VAL (* val *)
+    | EQUAL (* = *)
+    | COMMA (* , *)
+    | LPAREN (* ( *)
+    | RPAREN (* ) *)
+    | FATARROW (* => *)
+    | SEMICOLON (* ; *)
+    | PLUS (* + *)
+    | MINUS (* - *)
+    | TIMES (* * *)
+    | LE (* <= *)
+
+(* Nonterminal symbols *)
+%nonterm ATEXP of Syntax.exp
+       | IDENTSEQ_AUX of string list
+       | IDENTSEQ of string list
+       | EXP of Syntax.exp
+       | APPEXP of Syntax.exp
+       | PRODEXP of Syntax.exp
+       | SUMEXP of Syntax.exp
+       | CMPEXP of Syntax.exp
+       | ATDEC of Syntax.dec
+       | DEC of Syntax.dec list
+       | TUPLE_BODY of Syntax.exp list
+
+%%
+
+(* Production rules *)
+ATEXP : BOOL
+          (Syntax.BOOL BOOL)
+      | DIGIT
+          (Syntax.INT DIGIT)
+      | LPAREN RPAREN
+          (Syntax.TUPLE [])
+      | LPAREN TUPLE_BODY RPAREN
+          (Syntax.TUPLE TUPLE_BODY)
+      | IDENT
+          (Syntax.VAR IDENT)
+      | LET DEC IN EXP END
+          (Syntax.LET (DEC, EXP))
+      | LPAREN EXP RPAREN
+          (EXP)
+
+IDENTSEQ_AUX : IDENT
+               ([IDENT])
+           | IDENT COMMA IDENTSEQ_AUX
+               (IDENT :: IDENTSEQ_AUX)
+
+IDENTSEQ : LPAREN RPAREN
+           ([])
+       | IDENT
+           ([IDENT])
+       | LPAREN IDENTSEQ_AUX RPAREN
+           (IDENTSEQ_AUX)
+
+APPEXP : ATEXP
+           (ATEXP)
+       | APPEXP ATEXP
+           (Syntax.APP (APPEXP, ATEXP))
+
+PRODEXP : APPEXP
+            (APPEXP)
+        | PRODEXP TIMES APPEXP
+            (Syntax.TIMES (PRODEXP, APPEXP))
+
+SUMEXP : PRODEXP
+           (PRODEXP)
+       | SUMEXP PLUS PRODEXP
+           (Syntax.PLUS (SUMEXP, PRODEXP))
+       | SUMEXP MINUS PRODEXP
+           (Syntax.MINUS (SUMEXP, PRODEXP))
+
+CMPEXP : SUMEXP
+           (SUMEXP)
+       | SUMEXP LE SUMEXP
+           (Syntax.LE (SUMEXP1, SUMEXP2))
+
+EXP : CMPEXP
+        (CMPEXP)
+    | FN IDENT FATARROW EXP
+        (Syntax.ABS (IDENT, EXP))
+    | IF EXP THEN EXP ELSE EXP
+        (Syntax.IF (EXP1, EXP2, EXP3))
+    | CASE EXP OF IDENTSEQ FATARROW EXP
+        (Syntax.LET_TUPLE (EXP1, IDENTSEQ, EXP2))
+
+ATDEC : VAL IDENT EQUAL EXP
+          (Syntax.VAL (IDENT, EXP))
+      | VAL REC IDENT EQUAL FN IDENT FATARROW EXP
+          (Syntax.VALREC (IDENT1, IDENT2, EXP))
+
+DEC : ATDEC
+        ([ATDEC])
+    | ATDEC SEMICOLON DEC
+        (ATDEC :: DEC)
+    | ATDEC DEC
+        (ATDEC :: DEC)
+
+TUPLE_BODY : EXP COMMA EXP
+               ([EXP1, EXP2])
+           | EXP COMMA TUPLE_BODY
+               (EXP :: TUPLE_BODY)
