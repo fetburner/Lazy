@@ -1,5 +1,8 @@
 (* let-polymorphism *)
 
+CM.make "./sources.cm";
+Main.run (1, 2);
+
 let
   val s = fn x => fn y => fn z => x z (y z)
   val k = fn x => fn y => x
@@ -47,14 +50,15 @@ let
 in even 10 end
 (* val it = true : bool *)
 
+let val rec ones = 1 :: ones in ones end
 
 let
   val rec zipWith = fn f => fn l1 => fn l2 =>
-    case l1 of
-         [] => []
-       | x :: l1 =>
-           (case l2 of
-                 [] => []
-               | y :: l2 => f x y :: zipWith f l1 l2)
-in zipWith end
+    case (l1, l2) of
+         ([], []) => []
+       | (x :: l1, y :: l2) => f x y :: zipWith f l1 l2
+  val tail = fn x =>
+    case x of h :: t => t
+  val rec fibs = 0 :: 1 :: zipWith (fn x => fn y => x + y) fibs (tail fibs)
+in fibs end
 (* val it = fn : (('_16 -> ('_15 -> '_14)) -> ('_16 list -> ('_15 list -> '_14 * list))) *)

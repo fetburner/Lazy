@@ -42,8 +42,6 @@
 
 (* Nonterminal symbols *)
 %nonterm ATEXP of Syntax.exp
-       | IDENTSEQ_AUX of string list
-       | IDENTSEQ of string list
        | EXP of Syntax.exp
        | APPEXP of Syntax.exp
        | PRODEXP of Syntax.exp
@@ -54,6 +52,10 @@
        | VALBIND of (string * Syntax.exp) list
        | DEC of Syntax.dec list
        | TUPLE_BODY of Syntax.exp list
+       | PATROW of (Syntax.pat * Syntax.exp) list
+       | ATPAT of Syntax.pat
+       | PAT of Syntax.pat
+       | PTUPLE_BODY of Syntax.pat list
 
 %%
 
@@ -74,18 +76,6 @@ ATEXP : BOOL
           (Syntax.LET (DEC, EXP))
       | LPAREN EXP RPAREN
           (EXP)
-
-IDENTSEQ_AUX : IDENT
-               ([IDENT])
-           | IDENT COMMA IDENTSEQ_AUX
-               (IDENT :: IDENTSEQ_AUX)
-
-IDENTSEQ : LPAREN RPAREN
-           ([])
-       | IDENT
-           ([IDENT])
-       | LPAREN IDENTSEQ_AUX RPAREN
-           (IDENTSEQ_AUX)
 
 APPEXP : ATEXP
            (ATEXP)
@@ -120,10 +110,8 @@ EXP : CMPEXP
         (Syntax.ABS (IDENT, EXP))
     | IF EXP THEN EXP ELSE EXP
         (Syntax.IF (EXP1, EXP2, EXP3))
-    | CASE EXP OF IDENTSEQ FATARROW EXP
-        (Syntax.LET_TUPLE (EXP1, IDENTSEQ, EXP2))
-    | CASE EXP OF LBRACKET RBRACKET FATARROW EXP BAR IDENT CONS IDENT FATARROW EXP
-        (Syntax.CASE (EXP1, EXP2, IDENT1, IDENT2, EXP3))
+    | CASE EXP OF PATROW
+        (Syntax.CASE (EXP, PATROW))
 
 ATDEC : VAL IDENT EQUAL EXP
           (Syntax.VAL (IDENT, EXP))
@@ -133,7 +121,7 @@ ATDEC : VAL IDENT EQUAL EXP
 VALBIND : IDENT EQUAL EXP
             ([(IDENT, EXP)])
         | IDENT EQUAL EXP AND VALBIND
-	    ((IDENT, EXP) :: VALBIND)
+            ((IDENT, EXP) :: VALBIND)
 
 DEC : ATDEC
         ([ATDEC])
@@ -146,3 +134,32 @@ TUPLE_BODY : EXP COMMA EXP
                ([EXP1, EXP2])
            | EXP COMMA TUPLE_BODY
                (EXP :: TUPLE_BODY)
+
+PATROW : PAT FATARROW EXP
+           ([(PAT, EXP)])
+       | PAT FATARROW EXP BAR PATROW
+           ((PAT, EXP) :: PATROW)
+
+ATPAT : BOOL
+	  (Syntax.PBOOL BOOL)
+      | DIGIT
+	  (Syntax.PINT DIGIT)
+      | IDENT
+	  (Syntax.PVAR IDENT)
+      | LBRACKET RBRACKET
+	  (Syntax.PNIL)
+      | LPAREN PTUPLE_BODY RPAREN
+	  (Syntax.PTUPLE PTUPLE_BODY)
+      | LPAREN PAT RPAREN
+	  (PAT)
+
+PAT : ATPAT
+        (ATPAT)
+    | ATPAT CONS PAT
+        (Syntax.PCONS (ATPAT, PAT))
+
+PTUPLE_BODY : PAT COMMA PAT
+                ([PAT1, PAT2])
+            | PAT COMMA PTUPLE_BODY
+                (PAT :: PTUPLE_BODY)
+

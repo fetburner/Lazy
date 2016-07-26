@@ -3,6 +3,25 @@ structure Typing : TYPING = struct
   exception UnboundVar of string
 
   (* perform type inference *)
+  fun typingPat l env (Syntax.PINT _) t =
+        (Type.unify (t, Type.INT); env)
+    | typingPat l env (Syntax.PBOOL _) t =
+        (Type.unify (t, Type.BOOL); env)
+    | typingPat l env Syntax.PNIL t =
+        (Type.unify (t, Type.LIST (Type.genvar l)); env)
+    | typingPat l env (Syntax.PVAR x) t =
+        StringMap.insert (env, x, Type.toTypeScheme t)
+    | typingPat l env (Syntax.PCONS (p1, p2)) t =
+        let val t' = Type.genvar l in
+          Type.unify (t, Type.LIST t');
+          typingPat l (typingPat l env p1 t') p2 t
+        end
+    | typingPat l env (Syntax.PTUPLE ps) t =
+        let val pts = map (fn p => (p, Type.genvar l)) ps in
+          Type.unify (t, Type.TUPLE (map #2 pts));
+          foldl (fn ((p, t), env) => typingPat l env p t) env pts
+        end
+
   fun typingExp l env (Syntax.INT _) = Type.INT
     | typingExp l env (Syntax.BOOL _) = Type.BOOL
     | typingExp l env Syntax.NIL = Type.LIST (Type.genvar l)
@@ -40,29 +59,15 @@ structure Typing : TYPING = struct
         typingExp l (foldl (fn (d, env) => typingDec l env d) env dec) m
     | typingExp l env (Syntax.TUPLE ms) =
         Type.TUPLE (map (typingExp l env) ms)
-    | typingExp l env (Syntax.LET_TUPLE (m, xs, n)) =
+    | typingExp l env (Syntax.CASE (m, pns)) =
         let
           val t1 = typingExp l env m
-          val xs' = map (fn x => (x, Type.genvar l)) xs
-          val t2 = typingExp l (foldl (fn ((x, t), s) =>
-            StringMap.insert (s, x, Type.toTypeScheme t)) env xs') n
+          val t2 = Type.genvar l
         in
-          Type.unify (t1, Type.TUPLE (map #2 xs'));
-          t2
-        end
-    | typingExp l env (Syntax.CASE (m, n1, x, y, n2)) =
-        let
-          val t1 = typingExp l env m
-          val t2 = typingExp l env n1
-          val t12 = Type.genvar l
-          val t3 = typingExp l
-            (StringMap.insert
-              (StringMap.insert (env, x, Type.toTypeScheme t12),
-               y,
-               Type.toTypeScheme t1)) n2
-        in
-          Type.unify (t1, Type.LIST t12);
-          Type.unify (t2, t3);
+          app (fn (p, n) =>
+            Type.unify (t2,
+              typingExp l
+                (typingPat l env p t1) n)) pns;
           t2
         end
     | typingExp l env (Syntax.PLUS (m, n)) =
