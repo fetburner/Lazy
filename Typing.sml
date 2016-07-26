@@ -111,15 +111,16 @@ structure Typing : TYPING = struct
         end
   and typingDec l env (Syntax.VAL (x, m)) =
         StringMap.insert (env, x, Type.generalize l (typingExp (l + 1) env m))
-    | typingDec l env (Syntax.VALREC (f, x, m)) =
+    | typingDec l env (Syntax.VALREC xms) =
         let
-          val t1 = Type.genvar (l + 1)
-          val t1' = typingExp (l + 1)
-            (StringMap.insert (env, f, Type.toTypeScheme t1))
-            (Syntax.ABS (x, m))
+          val xts = map (fn (x, _) => (x, Type.genvar (l + 1))) xms
+          val env' = foldl (fn ((x, t), env) =>
+            StringMap.insert (env, x, Type.toTypeScheme t)) env xts
+          val ts = map (fn (_, m) => typingExp (l + 1) env' m) xms
         in
-          Type.unify (t1, t1');
-          StringMap.insert (env, f, Type.generalize l t1)
+          ListPair.app Type.unify (map #2 xts, ts);
+          foldl (fn ((x, t), env) =>
+            StringMap.insert (env, x, Type.generalize l t)) env xts
         end
 
   (* typing expression *)

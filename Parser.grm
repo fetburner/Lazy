@@ -38,6 +38,7 @@
     | RBRACKET (* * *)
     | CONS (* :: *)
     | BAR (* | *)
+    | AND (* and *)
 
 (* Nonterminal symbols *)
 %nonterm ATEXP of Syntax.exp
@@ -50,6 +51,7 @@
        | CONSEXP of Syntax.exp
        | CMPEXP of Syntax.exp
        | ATDEC of Syntax.dec
+       | VALBIND of (string * Syntax.exp) list
        | DEC of Syntax.dec list
        | TUPLE_BODY of Syntax.exp list
 
@@ -125,8 +127,13 @@ EXP : CMPEXP
 
 ATDEC : VAL IDENT EQUAL EXP
           (Syntax.VAL (IDENT, EXP))
-      | VAL REC IDENT EQUAL FN IDENT FATARROW EXP
-          (Syntax.VALREC (IDENT1, IDENT2, EXP))
+      | VAL REC VALBIND
+          (Syntax.VALREC (VALBIND))
+
+VALBIND : IDENT EQUAL EXP
+            ([(IDENT, EXP)])
+        | IDENT EQUAL EXP AND VALBIND
+	    ((IDENT, EXP) :: VALBIND)
 
 DEC : ATDEC
         ([ATDEC])

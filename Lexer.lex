@@ -37,6 +37,7 @@ alpha=[A-Za-z];
 "val" => (VAL((),()));
 "true" => (BOOL(true,(),()));
 "false" => (BOOL(false,(),()));
+"and" => (AND((),()));
 "=" => (EQUAL((),()));
 "," => (COMMA((),()));
 "(" => (LPAREN((),()));

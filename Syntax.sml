@@ -31,8 +31,8 @@ structure Syntax = struct
   and dec =
     (* val x = M *)
       VAL of string * exp
-    (* val rec f = fn x => M *)
-    | VALREC of string * string * exp
+    (* val rec x1 = M1 and ... and xn = Mn *)
+    | VALREC of (string * exp) list
 
   fun expToString (INT n) = Int.toString n
     | expToString (BOOL b) = Bool.toString b
@@ -129,11 +129,21 @@ structure Syntax = struct
         ^ x
         ^ " = "
         ^ expToString m
-    | decToString (VALREC (f, x, m)) =
+    | decToString (VALREC []) = ""
+    | decToString (VALREC [(x, m)]) =
         "val rec "
-        ^ f
-        ^ " = fn "
         ^ x
-        ^ " => "
+        ^ " = "
         ^ expToString m
+    | decToString (VALREC ((x, m) :: xms)) =
+        "val rec "
+        ^ x
+        ^ " = "
+        ^ expToString m
+        ^ foldl (fn ((x, m), s) =>
+            s
+            ^ " and "
+            ^ x
+            ^ " = " 
+            ^ expToString m) "" xms
 end

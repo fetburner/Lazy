@@ -6,8 +6,6 @@ structure Value : VALUE = struct
     | CONS of thunk * thunk
     (* closure *)
     | FUN of env * string * Syntax.exp
-    (* closure of recursive function *)
-    | RECFUN of env * string * string * Syntax.exp
     | TUPLE of thunk list
   and thunk_body =
       VALUE of value
@@ -37,21 +35,22 @@ structure Value : VALUE = struct
               | BOOL false => eval env n2)
       | eval env (Syntax.ABS (x, m)) = FUN (env, x, m)
       | eval env (Syntax.APP (m, n)) =
-          (case eval env m of
-                FUN (env0, x, m0) =>
-                  eval (StringMap.insert (env0, x, thunkFromSyntaxExp env n)) m0
-              | v as RECFUN (env0, f, x, m0) =>
-                  eval
-                    (StringMap.insert
-                      (StringMap.insert (env0, f, thunkFromValue v),
-                       x,
-                       thunkFromSyntaxExp env n)) m0)
+          let val FUN (env0, x, m0) = eval env m in
+            eval (StringMap.insert (env0, x, thunkFromSyntaxExp env n)) m0
+          end
       | eval env (Syntax.LET (dec, m)) =
           eval (foldl (fn
               (Syntax.VAL (x, m), env) =>
                 StringMap.insert (env, x, thunkFromSyntaxExp env m)
-            | (Syntax.VALREC (f, x, m), env) =>
-                StringMap.insert (env, f, thunkFromValue (RECFUN (env, f, x, m)))) env dec) m
+            | (Syntax.VALREC xms, env) =>
+                let
+                  val xmvs = map (fn (x, m) => (x, m, ref (VALUE (BOOL true)))) xms
+                  val env = foldl (fn ((x, _, v), env) =>
+                    StringMap.insert (env, x, v)) env xmvs
+                in
+                  app (fn (x, m, v) => v := SUSPEND (env, m)) xmvs;
+                  env
+                end) env dec) m
       | eval env (Syntax.TUPLE ms) =
           TUPLE (map (thunkFromSyntaxExp env) ms)
       | eval env (Syntax.LET_TUPLE (m, xs, n)) =
@@ -102,7 +101,6 @@ structure Value : VALUE = struct
       | toString _ (BOOL b) = Bool.toString b
       | toString _ NIL = "[]"
       | toString _ (FUN _) = "fn"
-      | toString _ (RECFUN _) = "fn"
       | toString _ (TUPLE []) = "()"
       | toString n (TUPLE (m :: ms)) =
           "("
