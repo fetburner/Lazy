@@ -19,8 +19,6 @@ structure Syntax = struct
     | NIL
     (* variable *)
     | VAR of string
-    (* if M then N_1 else N_2 *)
-    | IF of exp * exp * exp
     (* fn x => M *)
     | ABS of string * exp
     (* M N *)

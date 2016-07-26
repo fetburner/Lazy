@@ -29,16 +29,6 @@ structure Typing : TYPING = struct
         (case StringMap.find (env, x) of
               NONE => raise (UnboundVar x)
             | SOME t => Type.inst l t)
-    | typingExp l env (Syntax.IF (m, n1, n2)) =
-        let
-          val t1 = typingExp l env m
-          val t2 = typingExp l env n1
-          val t3 = typingExp l env n2
-        in
-          Type.unify (t1, Type.BOOL);
-          Type.unify (t2, t3);
-          t2
-        end
     | typingExp l env (Syntax.ABS (x, m)) =
         let
           val t1 = Type.genvar l

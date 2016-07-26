@@ -72,10 +72,6 @@ structure Value : VALUE = struct
       | expEval env Syntax.NIL = NIL
       | expEval env (Syntax.VAR x) =
           force (valOf (StringMap.find (env, x)))
-      | expEval env (Syntax.IF (m, n1, n2)) =
-          (case expEval env m of
-                BOOL true => expEval env n1
-              | BOOL false => expEval env n2)
       | expEval env (Syntax.ABS (x, m)) = FUN (env, x, m)
       | expEval env (Syntax.APP (m, n)) =
           let val FUN (env0, x, m0) = expEval env m in

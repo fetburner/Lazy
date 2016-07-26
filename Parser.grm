@@ -109,7 +109,10 @@ EXP : CMPEXP
     | FN IDENT FATARROW EXP
         (Syntax.ABS (IDENT, EXP))
     | IF EXP THEN EXP ELSE EXP
-        (Syntax.IF (EXP1, EXP2, EXP3))
+        (Syntax.CASE
+	  (EXP1,
+	    [(Syntax.PBOOL true, EXP2),
+	     (Syntax.PBOOL false, EXP3)]))
     | CASE EXP OF PATROW
         (Syntax.CASE (EXP, PATROW))
 
