@@ -30,10 +30,7 @@ structure Syntax = struct
     (* case M of p1 => N1 | ... | pn => Nn *)
     | CASE of exp * (pat * exp) list
     (* primitives *)
-    | PLUS of exp * exp
-    | MINUS of exp * exp
-    | TIMES of exp * exp
-    | LE of exp * exp
+    | PRIM of Prim.prim * exp list
     | CONS of exp * exp
   (* abstract syntax tree of declaration *)
   and dec =

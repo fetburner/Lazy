@@ -85,14 +85,14 @@ APPEXP : ATEXP
 PRODEXP : APPEXP
             (APPEXP)
         | PRODEXP TIMES APPEXP
-            (Syntax.TIMES (PRODEXP, APPEXP))
+            (Syntax.PRIM (Prim.TIMES, [PRODEXP, APPEXP]))
 
 SUMEXP : PRODEXP
            (PRODEXP)
        | SUMEXP PLUS PRODEXP
-           (Syntax.PLUS (SUMEXP, PRODEXP))
+           (Syntax.PRIM (Prim.PLUS, [SUMEXP, PRODEXP]))
        | SUMEXP MINUS PRODEXP
-           (Syntax.MINUS (SUMEXP, PRODEXP))
+           (Syntax.PRIM (Prim.MINUS, [SUMEXP, PRODEXP]))
 
 CONSEXP : SUMEXP
             (SUMEXP)
@@ -102,7 +102,7 @@ CONSEXP : SUMEXP
 CMPEXP : CONSEXP
            (CONSEXP)
        | CONSEXP LE CONSEXP
-           (Syntax.LE (CONSEXP1, CONSEXP2))
+           (Syntax.PRIM (Prim.LE, [CONSEXP1, CONSEXP2]))
 
 EXP : CMPEXP
         (CMPEXP)

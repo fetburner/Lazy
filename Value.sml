@@ -101,34 +101,12 @@ structure Value : VALUE = struct
                  NONE => raise PatternMatchFailure
                | SOME v => v
           end
-      | expEval env (Syntax.PLUS (m, n)) =
-          let
-            val INT m = expEval env m
-            val INT n = expEval env n
-          in
-            INT (m + n)
-          end
-      | expEval env (Syntax.MINUS (m, n)) =
-          let
-            val INT m = expEval env m
-            val INT n = expEval env n
-          in
-            INT (m - n)
-          end
-      | expEval env (Syntax.TIMES (m, n)) =
-          let
-            val INT m = expEval env m
-            val INT n = expEval env n
-          in
-            INT (m * n)
-          end
-      | expEval env (Syntax.LE (m, n)) =
-          let
-            val INT m = expEval env m
-            val INT n = expEval env n
-          in
-            BOOL (m <= n)
-          end
+      | expEval env (Syntax.PRIM (p, ms)) =
+          (case (p, map (expEval env) ms) of
+                (Prim.PLUS, [ INT m, INT n ]) => INT (m + n)
+              | (Prim.MINUS, [ INT m, INT n ]) => INT (m - n)
+              | (Prim.TIMES, [ INT m, INT n ]) => INT (m * n)
+              | (Prim.LE, [ INT m, INT n ]) => BOOL (m <= n))
       | expEval env (Syntax.CONS (m, n)) =
           CONS (thunkFromSyntaxExp env m, thunkFromSyntaxExp env n)
 

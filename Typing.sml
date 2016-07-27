@@ -60,42 +60,9 @@ structure Typing : TYPING = struct
                 (typingPat l env p t1) n)) pns;
           t2
         end
-    | typingExp l env (Syntax.PLUS (m, n)) =
-        let
-          val t1 = typingExp l env m
-          val t2 = typingExp l env n
-        in
-          Type.unify (t1, Type.INT);
-          Type.unify (t2, Type.INT);
-          Type.INT
-        end
-    | typingExp l env (Syntax.MINUS (m, n)) =
-        let
-          val t1 = typingExp l env m
-          val t2 = typingExp l env n
-        in
-          Type.unify (t1, Type.INT);
-          Type.unify (t2, Type.INT);
-          Type.INT
-        end
-    | typingExp l env (Syntax.TIMES (m, n)) =
-        let
-          val t1 = typingExp l env m
-          val t2 = typingExp l env n
-        in
-          Type.unify (t1, Type.INT);
-          Type.unify (t2, Type.INT);
-          Type.INT
-        end
-    | typingExp l env (Syntax.LE (m, n)) =
-        let
-          val t1 = typingExp l env m
-          val t2 = typingExp l env n
-        in
-          Type.unify (t1, Type.INT);
-          Type.unify (t2, Type.INT);
-          Type.BOOL
-        end
+    | typingExp l env (Syntax.PRIM (p, ms)) =
+        (ListPair.appEq Type.unify (Prim.dom p, map (typingExp l env) ms);
+         Prim.cod p)
     | typingExp l env (Syntax.CONS (m, n)) =
         let
           val t1 = typingExp l env m
