@@ -9,28 +9,25 @@ structure Value : VALUE = struct
     (* closure *)
     | FUN of env * string * Syntax.exp
     | TUPLE of thunk list
-  and thunk_body =
-      VALUE of value
-    | SUSPEND of env * Syntax.exp
-  withtype thunk = thunk_body ref
+  withtype thunk = (unit -> value) ref
   and env = thunk StringMap.map
 
-  fun thunkFromSyntaxExp env m = ref (SUSPEND (env, m))
-  fun thunkFromValue v = ref (VALUE v)
+  fun findMap f [] = NONE
+    | findMap f (x :: xs) =
+        (case f x of
+              NONE => findMap f xs
+            | r as SOME _ => r)
+
+  fun thunkFromValue v = ref (fn () => v)
+
+  (* obtain value from thunk *)
+  fun force (thunk as ref f) =
+    let val v = f () in
+      thunk := (fn () => v); v
+    end
 
   local 
-    fun findMap f [] = NONE
-      | findMap f (x :: xs) =
-          (case f x of
-                NONE => findMap f xs
-              | r as SOME _ => r)
-
-    (* obtain value from thunk *)
-    fun force (ref (VALUE v)) = v
-      | force (r as ref (SUSPEND (env, m))) =
-          let val v = expEval env m in
-            r := VALUE v; v
-          end
+    fun thunkFromSyntaxExp env m = ref (fn () => expEval env m)
 
     (* perform pattern matching and bind variables *)
     and patEval env (Syntax.PINT n) v =
@@ -84,11 +81,12 @@ structure Value : VALUE = struct
                 StringMap.insert (env, x, thunkFromSyntaxExp env m)
             | (Syntax.VALREC xms, env) =>
                 let
-                  val xmvs = map (fn (x, m) => (x, m, ref (VALUE (BOOL true)))) xms
+                  val xmvs = map (fn (x, m) =>
+                    (x, m, ref (fn () => raise (Fail "dummy")))) xms
                   val env = foldl (fn ((x, _, v), env) =>
                     StringMap.insert (env, x, v)) env xmvs
                 in
-                  app (fn (x, m, v) => v := SUSPEND (env, m)) xmvs;
+                  app (fn (x, m, v) => v := (fn () => expEval env m)) xmvs;
                   env
                 end) env dec) m
       | expEval env (Syntax.TUPLE ms) =

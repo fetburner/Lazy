@@ -28,7 +28,7 @@ let
 in
   fix (fn fib => fn x =>
     if_ (x <= 1) x (fib (x - 1) + fib (x - 2))) 6
-end
+end;
 (* val it = 8 : int *)
 
 (* circular programming *)
@@ -37,7 +37,7 @@ let
     case l of [] => [] | h :: t => f h :: map f t
   val rec even = 0 :: map (fn x => x + 1) odd
   and odd = map (fn x => x + 1) even
-in (even, odd) end
+in (even, odd) end;
 (* val it = (0 :: 2 :: 4 :: 6 :: 8 :: ... , 1 :: 3 :: 5 :: 7 :: 9 :: ...) : int * list * int list *)
 
 let
