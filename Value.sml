@@ -49,6 +49,7 @@ structure Value : VALUE = struct
           (case force v of
                 NIL => SOME env
               | _ => NONE)
+      | patEval env Syntax.PWILD v = SOME env
       | patEval env (Syntax.PVAR x) v =
           SOME (StringMap.insert (env, x, v))
       | patEval env (Syntax.PCONS (p1, p2)) v =

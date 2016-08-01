@@ -4,6 +4,8 @@ structure Syntax = struct
       PINT of int
     | PBOOL of bool
     | PNIL
+    (* _ *)
+    | PWILD
     (* x *)
     | PVAR of string
     (* p :: p *)

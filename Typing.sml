@@ -9,6 +9,7 @@ structure Typing : TYPING = struct
         (Type.unify (t, Type.BOOL); env)
     | typingPat l env Syntax.PNIL t =
         (Type.unify (t, Type.LIST (Type.genvar l)); env)
+    | typingPat l env Syntax.PWILD t = env
     | typingPat l env (Syntax.PVAR x) t =
         StringMap.insert (env, x, Type.toTypeScheme t)
     | typingPat l env (Syntax.PCONS (p1, p2)) t =

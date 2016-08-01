@@ -52,6 +52,7 @@ alpha=[A-Za-z];
 "]" => (RBRACKET((),()));
 "::" => (CONS((),()));
 "|" => (BAR((),()));
+"_" => (UNDERSCORE((),()));
 "~"? {digit}+ => (DIGIT(valOf(Int.fromString yytext),(),()));
 {letter} ({alpha} | {digit} | "'" |  "_")* => (IDENT(yytext,(),()));
 {space}+ => (lex()(* skip spaces and continue lexing *));

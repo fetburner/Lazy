@@ -39,6 +39,7 @@
     | CONS (* :: *)
     | BAR (* | *)
     | AND (* and *)
+    | UNDERSCORE (* _ *)
 
 (* Nonterminal symbols *)
 %nonterm ATEXP of Syntax.exp
@@ -110,9 +111,9 @@ EXP : CMPEXP
         (Syntax.ABS (IDENT, EXP))
     | IF EXP THEN EXP ELSE EXP
         (Syntax.CASE
-	  (EXP1,
-	    [(Syntax.PBOOL true, EXP2),
-	     (Syntax.PBOOL false, EXP3)]))
+          (EXP1,
+            [(Syntax.PBOOL true, EXP2),
+             (Syntax.PBOOL false, EXP3)]))
     | CASE EXP OF PATROW
         (Syntax.CASE (EXP, PATROW))
 
@@ -144,17 +145,19 @@ PATROW : PAT FATARROW EXP
            ((PAT, EXP) :: PATROW)
 
 ATPAT : BOOL
-	  (Syntax.PBOOL BOOL)
+          (Syntax.PBOOL BOOL)
       | DIGIT
-	  (Syntax.PINT DIGIT)
+          (Syntax.PINT DIGIT)
       | IDENT
-	  (Syntax.PVAR IDENT)
+          (Syntax.PVAR IDENT)
+      | UNDERSCORE
+          (Syntax.PWILD)
       | LBRACKET RBRACKET
-	  (Syntax.PNIL)
+          (Syntax.PNIL)
       | LPAREN PTUPLE_BODY RPAREN
-	  (Syntax.PTUPLE PTUPLE_BODY)
+          (Syntax.PTUPLE PTUPLE_BODY)
       | LPAREN PAT RPAREN
-	  (PAT)
+          (PAT)
 
 PAT : ATPAT
         (ATPAT)
