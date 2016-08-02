@@ -1,6 +1,8 @@
-
-
-
+fun SyntaxIF EXP1 EXP2 EXP3 =
+  Syntax.CASE
+    (EXP1,
+      [(Syntax.PBOOL true, EXP2),
+       (Syntax.PBOOL false, EXP3)])
 %%
 (* Declarations for ML-Yacc *)
 
@@ -40,6 +42,8 @@
     | BAR (* | *)
     | AND (* and *)
     | UNDERSCORE (* _ *)
+    | ANDALSO (* ANDALSO *)
+    | ORELSE (* ORELSE *)
 
 (* Nonterminal symbols *)
 %nonterm ATEXP of Syntax.exp
@@ -49,6 +53,8 @@
        | SUMEXP of Syntax.exp
        | CONSEXP of Syntax.exp
        | CMPEXP of Syntax.exp
+       | ANDEXP of Syntax.exp
+       | OREXP of Syntax.exp
        | ATDEC of Syntax.dec
        | VALBIND of (string * Syntax.exp) list
        | DEC of Syntax.dec list
@@ -105,15 +111,22 @@ CMPEXP : CONSEXP
        | CONSEXP LE CONSEXP
            (Syntax.PRIM (Prim.LE, [CONSEXP1, CONSEXP2]))
 
-EXP : CMPEXP
-        (CMPEXP)
+ANDEXP : CMPEXP
+           (CMPEXP)
+       | CMPEXP ANDALSO ANDEXP
+           (SyntaxIF CMPEXP ANDEXP (Syntax.BOOL false))
+
+OREXP : ANDEXP
+          (ANDEXP)
+      | ANDEXP ORELSE OREXP
+          (SyntaxIF ANDEXP (Syntax.BOOL true) OREXP)
+
+EXP : OREXP
+        (OREXP)
     | FN IDENT FATARROW EXP
         (Syntax.ABS (IDENT, EXP))
     | IF EXP THEN EXP ELSE EXP
-        (Syntax.CASE
-          (EXP1,
-            [(Syntax.PBOOL true, EXP2),
-             (Syntax.PBOOL false, EXP3)]))
+        (SyntaxIF EXP1 EXP2 EXP3)
     | CASE EXP OF PATROW
         (Syntax.CASE (EXP, PATROW))
 

@@ -38,6 +38,8 @@ alpha=[A-Za-z];
 "true" => (BOOL(true,(),()));
 "false" => (BOOL(false,(),()));
 "and" => (AND((),()));
+"andalso" => (ANDALSO((),()));
+"orelse" => (ORELSE((),()));
 "=" => (EQUAL((),()));
 "," => (COMMA((),()));
 "(" => (LPAREN((),()));
