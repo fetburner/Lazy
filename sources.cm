@@ -5,6 +5,7 @@ Group is
   Id.sig
   Id.sml
   IdMap.sml
+  IdSet.sml
   Type.sig
   Type.sml
   Prim.sml

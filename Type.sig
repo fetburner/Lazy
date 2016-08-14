@@ -1,5 +1,6 @@
 signature TYPE =
 sig
+  type tvar
   datatype typ =
     (* type variable *)
       VAR of tvar ref
@@ -10,8 +11,6 @@ sig
     | ARROW of typ * typ
     | TUPLE of typ list
     | LIST of typ
-  and tvar = UNBOUND of Id.id * int | LINK of typ
-
   type scheme
 
   val toString : typ -> string
@@ -19,8 +18,8 @@ sig
   val toTypeScheme : typ -> scheme
 
   val genvar : int -> typ
-  val inst : int -> scheme -> typ
-  val generalize : int -> typ -> scheme
+  val inst : int -> scheme -> typ * typ IdMap.map
+  val generalize : int -> typ -> scheme * IdSet.set
 
   exception Unify of typ * typ
 

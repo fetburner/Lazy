@@ -12,9 +12,9 @@ structure Type : TYPE = struct
   and tvar = UNBOUND of Id.id * int | LINK of typ
 
   (* type scheme *)
-  type scheme = Id.id list * typ
+  datatype scheme = TYPE_SCHEME of typ
 
-  fun toTypeScheme t = ([], t)
+  fun toTypeScheme t = TYPE_SCHEME t
 
   fun toString (VAR (ref (LINK t))) =
         toString t
@@ -31,39 +31,43 @@ structure Type : TYPE = struct
         "(" ^ foldr (fn (t, s) => s ^ " * " ^ toString t) (toString t) ts ^ ")"
     | toString (LIST t) = toString t ^ " list"
 
-  fun schemeToString (_, t) = toString t
+  fun schemeToString (TYPE_SCHEME t) = toString t
 
   (* generate type variable in current level *)
   fun genvar l = VAR (ref (UNBOUND (Id.gensym (), l)))
 
-  local
-    fun subst env (t as (VAR (ref (UNBOUND _)))) = t
-      | subst env (VAR (ref (LINK t))) = subst env t
-      | subst env (t as META x) =
-          (case IdMap.find (env, x) of
-                SOME t' => t'
-              | NONE => t)
-      | subst env INT = INT
-      | subst env BOOL = BOOL
-      | subst env (ARROW (t1, t2)) = ARROW (subst env t1, subst env t2)
-      | subst env (TUPLE ts) = TUPLE (map (subst env) ts)
-      | subst env (LIST t) = LIST (subst env t)
+  (* instantiate type scheme in current level *)
+  fun inst l (TYPE_SCHEME t) =
+    let 
+      val bounds = ref IdMap.empty
+      fun instBody (t as (VAR (ref (UNBOUND _)))) = t
+        | instBody (VAR (ref (LINK t))) = instBody t
+        | instBody (META x) =
+            (case IdMap.find (!bounds, x) of
+                  SOME t => t
+                | NONE =>
+                    let val t = genvar l in
+                      bounds := IdMap.insert (!bounds, x, t);
+                      t
+                    end)
+        | instBody INT = INT
+        | instBody BOOL = BOOL
+        | instBody (ARROW (t1, t2)) = ARROW (instBody t1, instBody t2)
+        | instBody (TUPLE ts) = TUPLE (map instBody ts)
+        | instBody (LIST t) = LIST (instBody t)
   in
-    (* instantiate type scheme in current level *)
-    fun inst l (xs, t) =
-      subst (foldl (fn (x, s) =>
-        IdMap.insert (s, x, genvar l)) IdMap.empty xs) t
+    (instBody t, !bounds)
   end
 
   (* generalize type variable in current level *)
   fun generalize l t =
     let
-      val bounds = ref []
+      val bounds = ref IdSet.empty
       fun generalizeBody (VAR (ref (LINK t))) =
             generalizeBody t
         | generalizeBody (VAR (r as ref (UNBOUND (x, l')))) =
             if l < l' then
-              (bounds := x :: !bounds;
+              (bounds := IdSet.add (!bounds, x);
                r := LINK (META x))
             else ()
         | generalizeBody (META _) = ()
@@ -74,9 +78,9 @@ structure Type : TYPE = struct
         | generalizeBody (TUPLE ts) =
             app generalizeBody ts
         | generalizeBody (LIST t) = generalizeBody t
-      val () = generalizeBody t
     in
-      (!bounds, t)
+      generalizeBody t;
+      (TYPE_SCHEME t, !bounds)
     end
 
   (* exception that arises when type checker fail to unify types *)
