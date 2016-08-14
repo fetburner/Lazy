@@ -15,13 +15,14 @@ sig
   type scheme
 
   val toString : typ -> string
+  val schemeToString : scheme -> string
   val toTypeScheme : typ -> scheme
 
   val genvar : int -> typ
-	val inst : int -> scheme -> typ
-	val generalize : int -> typ -> scheme
+  val inst : int -> scheme -> typ
+  val generalize : int -> typ -> scheme
 
   exception Unify of typ * typ
 
-	val unify : typ * typ -> unit
+  val unify : typ * typ -> unit
 end

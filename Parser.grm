@@ -9,7 +9,7 @@ fun SyntaxIF EXP1 EXP2 EXP3 =
 %name Lazy
 %pos unit
 %eop SEMICOLON
-%start EXP
+%start TOPLEVEL
 
 (* Terminal symbols *)
 %term IDENT of string (* value identifier *)
@@ -63,6 +63,7 @@ fun SyntaxIF EXP1 EXP2 EXP3 =
        | ATPAT of Syntax.pat
        | PAT of Syntax.pat
        | PTUPLE_BODY of Syntax.pat list
+       | TOPLEVEL of Syntax.dec
 
 %%
 
@@ -182,3 +183,7 @@ PTUPLE_BODY : PAT COMMA PAT
             | PAT COMMA PTUPLE_BODY
                 (PAT :: PTUPLE_BODY)
 
+TOPLEVEL : EXP
+             (Syntax.VAL ("it", EXP))
+         | ATDEC
+             (ATDEC)

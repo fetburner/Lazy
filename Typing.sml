@@ -47,7 +47,8 @@ structure Typing : TYPING = struct
           t3
         end
     | typingExp l env (Syntax.LET (dec, m)) =
-        typingExp l (foldl (fn (d, env) => typingDec l env d) env dec) m
+        typingExp l (foldl (fn (d, env) =>
+          StringMap.unionWith #2 (env, typingDec l env d)) env dec) m
     | typingExp l env (Syntax.TUPLE ms) =
         Type.TUPLE (map (typingExp l env) ms)
     | typingExp l env (Syntax.CASE (m, pns)) =
@@ -73,7 +74,7 @@ structure Typing : TYPING = struct
           t2
         end
   and typingDec l env (Syntax.VAL (x, m)) =
-        StringMap.insert (env, x, Type.generalize l (typingExp (l + 1) env m))
+        StringMap.singleton (x, Type.generalize l (typingExp (l + 1) env m))
     | typingDec l env (Syntax.VALREC xms) =
         let
           val xmts = map (fn (x, m) => (x, m, Type.genvar (l + 1))) xms
@@ -82,9 +83,8 @@ structure Typing : TYPING = struct
         in
           app (fn (x, m, t) => Type.unify (t, typingExp (l + 1) env' m)) xmts;
           foldl (fn ((x, _, t), env) =>
-            StringMap.insert (env, x, Type.generalize l t)) env xmts
+            StringMap.insert (env, x, Type.generalize l t)) StringMap.empty xmts
         end
 
-  (* typing expression *)
-  val typing = typingExp 0 StringMap.empty
+  val typingDec = typingDec 0
 end

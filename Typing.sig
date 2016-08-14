@@ -1,4 +1,4 @@
 signature TYPING = sig
   exception UnboundVar of string
-  val typing : Syntax.exp -> Type.typ
+  val typingDec : Type.scheme StringMap.map -> Syntax.dec -> Type.scheme StringMap.map 
 end

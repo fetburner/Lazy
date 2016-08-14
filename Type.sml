@@ -31,6 +31,8 @@ structure Type : TYPE = struct
         "(" ^ foldr (fn (t, s) => s ^ " * " ^ toString t) (toString t) ts ^ ")"
     | toString (LIST t) = toString t ^ " list"
 
+  fun schemeToString (_, t) = toString t
+
   (* generate type variable in current level *)
   fun genvar l = VAR (ref (UNBOUND (Id.gensym (), l)))
 
