@@ -36,9 +36,15 @@ and odd = map (fn x => x + 1) even;
 
 val rec zipWith = fn f => fn l1 => fn l2 =>
   case (l1, l2) of
-       (x :: l1, y :: l2) => f x y :: zipWith f l1 l2
-     | _ => [];
+       ([], _) => []
+     | (_, []) => []
+     | (x :: l1, y :: l2) => f x y :: zipWith f l1 l2
 val tail = fn x =>
   case x of h :: t => t;
 val rec fibs = 0 :: 1 :: zipWith (fn x => fn y => x + y) fibs (tail fibs);
 (* val it = 0 :: 1 :: 1 :: 2 :: 3 :: 5 :: 8 :: 13 ... : int list *)
+
+(* infinite loop *)
+val rec x = y
+and y = x;
+

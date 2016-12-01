@@ -1,4 +1,5 @@
 structure Value : VALUE = struct
+  exception Bottom
   exception PatternMatchFailure
 
   datatype value =
@@ -22,14 +23,14 @@ structure Value : VALUE = struct
 
   (* obtain value from thunk *)
   fun force (thunk as ref f) =
-    let val v = f () in
-      thunk := (fn () => v); v
-    end
-
-  fun thunkFromSyntaxExp env m = ref (fn () => evalExp env m)
+    let
+      val () = thunk := (fn () => raise Bottom)
+      val v = f ()
+      val () = thunk := (fn () => v)
+    in v end
 
   (* perform pattern matching and bind variables *)
-  and patEval env (Syntax.PINT n) v =
+  fun patEval env (Syntax.PINT n) v =
         (case force v of
               INT n' =>
                 if n = n' then SOME env
@@ -63,6 +64,8 @@ structure Value : VALUE = struct
                   | (p, v, SOME env) =>
                       patEval env p v) (SOME env) (ps, vs)
             | _ => NONE)
+
+  fun thunkFromSyntaxExp env m = ref (fn () => evalExp env m)
 
   and evalExp env (Syntax.INT n) = INT n
     | evalExp env (Syntax.BOOL b) = BOOL b

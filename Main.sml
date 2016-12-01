@@ -26,6 +26,10 @@ structure Main = struct
             ^ Type.toString t1
             ^ " and "
             ^ Type.toString t2); (env, tenv))
+    | Value.Bottom =>
+        (print "Error : infinite loop"; (env, tenv))
+    | Value.PatternMatchFailure =>
+        (print "Error : pattern matching failed"; (env, tenv))
     | Typing.UnboundVar x =>
         (print ("Error : unbound variable " ^ x); (env, tenv))
     | ListPair.UnequalLengths =>
