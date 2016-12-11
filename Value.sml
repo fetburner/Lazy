@@ -85,26 +85,12 @@ structure Value : VALUE = struct
           val env = StringMap.unionWith #2 (env, env')
         in
           app (fn (x, m, v) => v := (fn () => evalExp env m)) xmvs;
-          env
+          env'
         end
 
   fun toString 0 _ = " ... "
-    | toString _ (CONS (Cons.INT m, [])) = Int.toString m
-    | toString _ (CONS (Cons.BOOL b, [])) = Bool.toString b
-    | toString _ (CONS (Cons.NIL _, [])) = "[]"
+    | toString n (CONS (c, vs)) =
+        Cons.toString c (map (toString (n - 1) o force) vs)
     | toString _ (FUN _) = "fn"
-    | toString _ (CONS (Cons.TUPLE _, [])) = "()"
-    | toString n (CONS (Cons.TUPLE _, (m :: ms))) =
-        "("
-        ^ foldr (fn (m, s) =>
-            s ^ ", " ^ toString (n - 1) (force m))
-            (toString (n - 1) (force m)) ms
-        ^ ")"
-    | toString n (CONS (Cons.CONS _, [ m1, m2 ])) =
-        "("
-        ^ toString (n - 1) (force m1)
-        ^ " :: "
-        ^ toString (n - 1) (force m2)
-        ^ ")"
   val toString = toString 20
 end

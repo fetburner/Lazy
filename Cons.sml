@@ -25,4 +25,14 @@ structure Cons = struct
     | equal (CONS _, CONS _) = true
     | equal (TUPLE _, TUPLE _) = true
     | equal _ = false
+
+  fun toString (INT n) [] = Int.toString n
+    | toString (BOOL b) [] = Bool.toString b
+    | toString (NIL _) [] = "[]"
+    | toString (CONS _) [s1, s2] = "(" ^ s1 ^ " :: " ^ s2 ^ ")"
+    | toString (TUPLE _) [] = "()"
+    | toString (TUPLE _) (s :: ss) =
+        "("
+        ^ foldr (fn (s1, s2) => s2 ^ ", " ^ s1) s ss
+        ^ ")"
 end
