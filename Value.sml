@@ -3,13 +3,9 @@ structure Value : VALUE = struct
   exception PatternMatchFailure
 
   datatype value =
-      INT of int
-    | BOOL of bool
-    | NIL
-    | CONS of thunk * thunk
+      CONS of Cons.cons * thunk list
     (* closure *)
     | FUN of env * string * Syntax.exp
-    | TUPLE of thunk list
   withtype thunk = (unit -> value) ref
   and env = thunk StringMap.map
 
@@ -30,46 +26,24 @@ structure Value : VALUE = struct
     in v end
 
   (* perform pattern matching and bind variables *)
-  fun patEval env (Syntax.PINT n) v =
+  fun patEval env (Syntax.PCONS (c, ps)) v =
         (case force v of
-              INT n' =>
-                if n = n' then SOME env
+              CONS (c', vs) =>
+                if Cons.equal (c, c') then
+                  ListPair.foldlEq (fn
+                      (p, v, NONE) => NONE
+                    | (p, v, SOME env) =>
+                        patEval env p v) (SOME env) (ps, vs)
                 else NONE
-            | _ => NONE)
-    | patEval env (Syntax.PBOOL b) v =
-        (case force v of
-              BOOL b' =>
-                if b = b' then SOME env
-                else NONE
-            | _ => NONE)
-    | patEval env Syntax.PNIL v =
-        (case force v of
-              NIL => SOME env
             | _ => NONE)
     | patEval env Syntax.PWILD v = SOME env
     | patEval env (Syntax.PVAR x) v =
         SOME (StringMap.insert (env, x, v))
-    | patEval env (Syntax.PCONS (p1, p2)) v =
-        (case force v of
-              CONS (v1, v2) =>
-                (case patEval env p1 v1 of
-                      NONE => NONE
-                    | SOME env => patEval env p2 v2)
-            | _ => NONE)
-    | patEval env (Syntax.PTUPLE ps) v =
-        (case force v of
-              TUPLE vs =>
-                ListPair.foldlEq (fn
-                    (p, v, NONE) => NONE
-                  | (p, v, SOME env) =>
-                      patEval env p v) (SOME env) (ps, vs)
-            | _ => NONE)
 
   fun thunkFromSyntaxExp env m = ref (fn () => evalExp env m)
 
-  and evalExp env (Syntax.INT n) = INT n
-    | evalExp env (Syntax.BOOL b) = BOOL b
-    | evalExp env Syntax.NIL = NIL
+  and evalExp env (Syntax.CONS (c, ms)) =
+        CONS (c, map (thunkFromSyntaxExp env) ms)
     | evalExp env (Syntax.VAR x) =
         force (valOf (StringMap.find (env, x)))
     | evalExp env (Syntax.ABS (x, m)) = FUN (env, x, m)
@@ -80,8 +54,6 @@ structure Value : VALUE = struct
     | evalExp env (Syntax.LET (dec, m)) =
         evalExp (foldl (fn (dec, env) =>
           StringMap.unionWith #2 (env, evalDec env dec)) env dec) m
-    | evalExp env (Syntax.TUPLE ms) =
-        TUPLE (map (thunkFromSyntaxExp env) ms)
     | evalExp env (Syntax.CASE (m, pns)) =
         let val v = thunkFromSyntaxExp env m in
           case findMap (fn (p, n) =>
@@ -93,12 +65,14 @@ structure Value : VALUE = struct
         end
     | evalExp env (Syntax.PRIM (p, ms)) =
         (case (p, map (evalExp env) ms) of
-              (Prim.PLUS, [ INT m, INT n ]) => INT (m + n)
-            | (Prim.MINUS, [ INT m, INT n ]) => INT (m - n)
-            | (Prim.TIMES, [ INT m, INT n ]) => INT (m * n)
-            | (Prim.LE, [ INT m, INT n ]) => BOOL (m <= n))
-    | evalExp env (Syntax.CONS (m, n)) =
-        CONS (thunkFromSyntaxExp env m, thunkFromSyntaxExp env n)
+              (Prim.PLUS, [ CONS (Cons.INT m, []), CONS (Cons.INT n, []) ]) =>
+                CONS (Cons.INT (m + n), [])
+            | (Prim.MINUS, [ CONS (Cons.INT m, []), CONS (Cons.INT n, []) ]) =>
+                CONS (Cons.INT (m - n), [])
+            | (Prim.TIMES, [ CONS (Cons.INT m, []), CONS (Cons.INT n, []) ]) =>
+                CONS (Cons.INT (m * n), [])
+            | (Prim.LE, [ CONS (Cons.INT m, []), CONS (Cons.INT n, []) ]) =>
+                CONS (Cons.BOOL (m <= n), []))
 
   and evalDec env (Syntax.VAL (x, m)) =
         StringMap.singleton (x, thunkFromSyntaxExp env m)
@@ -115,18 +89,18 @@ structure Value : VALUE = struct
         end
 
   fun toString 0 _ = " ... "
-    | toString _ (INT m) = Int.toString m
-    | toString _ (BOOL b) = Bool.toString b
-    | toString _ NIL = "[]"
+    | toString _ (CONS (Cons.INT m, [])) = Int.toString m
+    | toString _ (CONS (Cons.BOOL b, [])) = Bool.toString b
+    | toString _ (CONS (Cons.NIL _, [])) = "[]"
     | toString _ (FUN _) = "fn"
-    | toString _ (TUPLE []) = "()"
-    | toString n (TUPLE (m :: ms)) =
+    | toString _ (CONS (Cons.TUPLE _, [])) = "()"
+    | toString n (CONS (Cons.TUPLE _, (m :: ms))) =
         "("
         ^ foldr (fn (m, s) =>
             s ^ ", " ^ toString (n - 1) (force m))
             (toString (n - 1) (force m)) ms
         ^ ")"
-    | toString n (CONS (m1, m2)) =
+    | toString n (CONS (Cons.CONS _, [ m1, m2 ])) =
         "("
         ^ toString (n - 1) (force m1)
         ^ " :: "

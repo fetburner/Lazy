@@ -1,8 +1,8 @@
 fun SyntaxIF EXP1 EXP2 EXP3 =
   Syntax.CASE
     (EXP1,
-      [(Syntax.PBOOL true, EXP2),
-       (Syntax.PBOOL false, EXP3)])
+      [(Syntax.PCONS (Cons.BOOL true, []), EXP2),
+       (Syntax.PCONS (Cons.BOOL false, []), EXP3)])
 %%
 (* Declarations for ML-Yacc *)
 
@@ -69,15 +69,20 @@ fun SyntaxIF EXP1 EXP2 EXP3 =
 
 (* Production rules *)
 ATEXP : BOOL
-          (Syntax.BOOL BOOL)
+          (Syntax.CONS (Cons.BOOL BOOL, []))
       | DIGIT
-          (Syntax.INT DIGIT)
+          (Syntax.CONS (Cons.INT DIGIT, []))
       | LPAREN RPAREN
-          (Syntax.TUPLE [])
+          (Syntax.CONS (Cons.TUPLE [], []))
       | LBRACKET RBRACKET
-          (Syntax.NIL)
+          (Syntax.CONS (Cons.NIL (Type.genvar (valOf Int.maxInt)), []))
       | LPAREN TUPLE_BODY RPAREN
-          (Syntax.TUPLE TUPLE_BODY)
+          (Syntax.CONS
+            (Cons.TUPLE
+              (List.tabulate
+                (length TUPLE_BODY,
+                 fn _ => Type.genvar (valOf Int.maxInt))),
+             TUPLE_BODY))
       | IDENT
           (Syntax.VAR IDENT)
       | LET DEC IN EXP END
@@ -105,7 +110,7 @@ SUMEXP : PRODEXP
 CONSEXP : SUMEXP
             (SUMEXP)
         | SUMEXP CONS CONSEXP
-            (Syntax.CONS (SUMEXP, CONSEXP))
+            (Syntax.CONS (Cons.CONS (Type.genvar (valOf Int.maxInt)), [SUMEXP, CONSEXP]))
 
 CMPEXP : CONSEXP
            (CONSEXP)
@@ -115,12 +120,12 @@ CMPEXP : CONSEXP
 ANDEXP : CMPEXP
            (CMPEXP)
        | CMPEXP ANDALSO ANDEXP
-           (SyntaxIF CMPEXP ANDEXP (Syntax.BOOL false))
+           (SyntaxIF CMPEXP ANDEXP (Syntax.CONS (Cons.BOOL false, [])))
 
 OREXP : ANDEXP
           (ANDEXP)
       | ANDEXP ORELSE OREXP
-          (SyntaxIF ANDEXP (Syntax.BOOL true) OREXP)
+          (SyntaxIF ANDEXP (Syntax.CONS (Cons.BOOL true, [])) OREXP)
 
 EXP : OREXP
         (OREXP)
@@ -159,24 +164,31 @@ PATROW : PAT FATARROW EXP
            ((PAT, EXP) :: PATROW)
 
 ATPAT : BOOL
-          (Syntax.PBOOL BOOL)
+          (Syntax.PCONS (Cons.BOOL BOOL, []))
       | DIGIT
-          (Syntax.PINT DIGIT)
+          (Syntax.PCONS (Cons.INT DIGIT, []))
       | IDENT
           (Syntax.PVAR IDENT)
       | UNDERSCORE
           (Syntax.PWILD)
       | LBRACKET RBRACKET
-          (Syntax.PNIL)
+          (Syntax.PCONS (Cons.NIL (Type.genvar (valOf Int.maxInt)), []))
+      | LPAREN RPAREN
+          (Syntax.PCONS (Cons.TUPLE [], []))
       | LPAREN PTUPLE_BODY RPAREN
-          (Syntax.PTUPLE PTUPLE_BODY)
+          (Syntax.PCONS
+            (Cons.TUPLE
+              (List.tabulate
+                (length PTUPLE_BODY,
+                 fn _ => Type.genvar (valOf Int.maxInt))),
+             PTUPLE_BODY))
       | LPAREN PAT RPAREN
           (PAT)
 
 PAT : ATPAT
         (ATPAT)
     | ATPAT CONS PAT
-        (Syntax.PCONS (ATPAT, PAT))
+        (Syntax.PCONS (Cons.CONS (Type.genvar (valOf Int.maxInt)), [ATPAT, PAT]))
 
 PTUPLE_BODY : PAT COMMA PAT
                 ([PAT1, PAT2])

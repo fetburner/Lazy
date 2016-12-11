@@ -9,6 +9,7 @@ Group is
   Type.sig
   Type.sml
   Prim.sml
+  Cons.sml
   StringMap.sml
   Syntax.sml
   Typing.sig
