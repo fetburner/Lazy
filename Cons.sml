@@ -33,6 +33,6 @@ structure Cons = struct
     | toString (TUPLE _) [] = "()"
     | toString (TUPLE _) (s :: ss) =
         "("
-        ^ foldr (fn (s1, s2) => s2 ^ ", " ^ s1) s ss
+        ^ foldl (fn (s1, s2) => s2 ^ ", " ^ s1) s ss
         ^ ")"
 end

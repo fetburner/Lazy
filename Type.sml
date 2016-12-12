@@ -4,12 +4,14 @@ structure Type : TYPE = struct
       VAR of tvar ref
     (* quantified type variable *)
     | META of Id.id
-    | INT
-    | BOOL
-    | ARROW of typ * typ
-    | TUPLE of typ list
-    | LIST of typ
+    | CONS of TypeCons.tycons * typ list
   and tvar = UNBOUND of Id.id * int | LINK of typ
+
+  val INT = CONS (TypeCons.INT, [])
+  val BOOL = CONS (TypeCons.BOOL, [])
+  fun ARROW (t1, t2) = CONS (TypeCons.ARROW, [t1, t2])
+  fun LIST t = CONS (TypeCons.LIST, [t])
+  fun TUPLE ts = CONS (TypeCons.TUPLE, ts)
 
   (* type scheme *)
   datatype scheme = TYPE_SCHEME of typ
@@ -22,14 +24,8 @@ structure Type : TYPE = struct
         "'_" ^ Id.toString x
     | toString (META x) =
         "'" ^ Id.toString x
-    | toString INT = "int"
-    | toString BOOL = "bool"
-    | toString (ARROW (t1, t2)) =
-        "(" ^ toString t1 ^ " -> " ^ toString t2 ^ ")"
-    | toString (TUPLE []) = "unit"
-    | toString (TUPLE (t :: ts)) =
-        "(" ^ foldr (fn (t, s) => s ^ " * " ^ toString t) (toString t) ts ^ ")"
-    | toString (LIST t) = toString t ^ " list"
+    | toString (CONS (c, ts)) =
+        TypeCons.toString c (map toString ts)
 
   fun schemeToString (TYPE_SCHEME t) = toString t
 
@@ -50,11 +46,7 @@ structure Type : TYPE = struct
                       bounds := IdMap.insert (!bounds, x, t);
                       t
                     end)
-        | instBody INT = INT
-        | instBody BOOL = BOOL
-        | instBody (ARROW (t1, t2)) = ARROW (instBody t1, instBody t2)
-        | instBody (TUPLE ts) = TUPLE (map instBody ts)
-        | instBody (LIST t) = LIST (instBody t)
+        | instBody (CONS (c, ts)) = CONS (c, map instBody ts)
   in
     (instBody t, !bounds)
   end
@@ -71,42 +63,30 @@ structure Type : TYPE = struct
                r := LINK (META x))
             else ()
         | generalizeBody (META _) = ()
-        | generalizeBody INT = ()
-        | generalizeBody BOOL = ()
-        | generalizeBody (ARROW (t1s, t2)) =
-            (generalizeBody t1s; generalizeBody t2)
-        | generalizeBody (TUPLE ts) =
+        | generalizeBody (CONS (_, ts)) =
             app generalizeBody ts
-        | generalizeBody (LIST t) = generalizeBody t
     in
       generalizeBody t;
       (TYPE_SCHEME t, !bounds)
     end
 
-  (* exception that arises when type checker fail to unify types *)
+  (* exception that arises when type checker fails to unify types *)
   exception Unify of typ * typ
 
   local
     (* occur check *)
-    fun occur r1 (ARROW (t1, t2)) =
-          occur r1 t1 orelse occur r1 t2
-      | occur r1 (LIST t) = occur r1 t
-      | occur r1 (VAR (r2 as (ref (UNBOUND _)))) = r1 = r2
+    fun occur r1 (VAR (r2 as (ref (UNBOUND _)))) = r1 = r2
       | occur r1 (VAR (r2 as (ref (LINK t2)))) =
           r1 = r2 orelse occur r1 t2
       | occur r1 (META _) = false
-      | occur r1 (TUPLE ts) = List.exists (occur r1) ts
-      | occur r1 INT = false
-      | occur r1 BOOL = false
+      | occur r1 (CONS (_, ts)) = List.exists (occur r1) ts
   in
     (* unifier *)
-    fun unify (INT, INT) = ()
-      | unify (BOOL, BOOL) = ()
-      | unify (ARROW (t11, t12), ARROW (t21, t22)) =
-          (unify (t11, t21); unify (t12, t22))
-      | unify (TUPLE t1s, TUPLE t2s) =
-           ListPair.appEq unify (t1s, t2s)
-      | unify (LIST t1, LIST t2) = unify (t1, t2)
+    fun unify (t1 as CONS (c1, t1s), t2 as CONS (c2, t2s)) =
+          if TypeCons.equal (c1, c2) then
+            ListPair.appEq unify (t1s, t2s)
+            handle ListPair.UnequalLengths => raise (Unify (t1, t2))
+          else raise (Unify (t1, t2))
       | unify (VAR (ref (LINK t1)), t2) = unify (t1, t2)
       | unify (t1, VAR (ref (LINK t2))) = unify (t1, t2)
       | unify (t1 as (VAR (r1 as (ref (UNBOUND (_, l1))))),

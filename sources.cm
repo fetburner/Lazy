@@ -6,6 +6,7 @@ Group is
   Id.sml
   IdMap.sml
   IdSet.sml
+  TypeCons.sml
   Type.sig
   Type.sml
   Prim.sml

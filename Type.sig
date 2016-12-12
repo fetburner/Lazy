@@ -1,17 +1,13 @@
 signature TYPE =
 sig
-  type tvar
-  datatype typ =
-    (* type variable *)
-      VAR of tvar ref
-    (* quantified type variable *)
-    | META of Id.id
-    | INT
-    | BOOL
-    | ARROW of typ * typ
-    | TUPLE of typ list
-    | LIST of typ
+  type typ
   type scheme
+
+  val INT : typ
+  val BOOL : typ
+  val ARROW : typ * typ -> typ
+  val LIST : typ -> typ
+  val TUPLE : typ list -> typ
 
   val toString : typ -> string
   val schemeToString : scheme -> string
